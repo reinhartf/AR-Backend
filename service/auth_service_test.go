@@ -1,8 +1,8 @@
 package service
 
 import (
-	gcontext "github.com/OscarYuen/go-graphql-starter/context"
-	"github.com/OscarYuen/go-graphql-starter/model"
+	gcontext "github.com/reinhartf/AR-Backend/context"
+	"github.com/reinhartf/AR-Backend/model"
 	"testing"
 )
 

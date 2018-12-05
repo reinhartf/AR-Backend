@@ -1,15 +1,15 @@
 package main
 
 import (
-	gcontext "github.com/OscarYuen/go-graphql-starter/context"
-	h "github.com/OscarYuen/go-graphql-starter/handler"
-	"github.com/OscarYuen/go-graphql-starter/resolver"
-	"github.com/OscarYuen/go-graphql-starter/schema"
-	"github.com/OscarYuen/go-graphql-starter/service"
+	gcontext "github.com/reinhartf/AR-Backend/context"
+	h "github.com/reinhartf/AR-Backend/handler"
+	"github.com/reinhartf/AR-Backend/resolver"
+	"github.com/reinhartf/AR-Backend/schema"
+	"github.com/reinhartf/AR-Backend/service"
 	"log"
 	"net/http"
 
-	"github.com/OscarYuen/go-graphql-starter/loader"
+	"github.com/reinhartf/AR-Backend/loader"
 	graphql "github.com/graph-gophers/graphql-go"
 	"golang.org/x/net/context"
 )

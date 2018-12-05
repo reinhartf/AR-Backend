@@ -2,7 +2,7 @@ package service
 
 import (
 	"database/sql"
-	"github.com/OscarYuen/go-graphql-starter/model"
+	"github.com/reinhartf/AR-Backend/model"
 	"github.com/jmoiron/sqlx"
 	"github.com/op/go-logging"
 )
