@@ -1,11 +1,10 @@
 package service
 
 import (
-	"database/sql"
 	"errors"
 	"github.com/reinhartf/AR-Backend/context"
 	"github.com/reinhartf/AR-Backend/model"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx"
 	"github.com/op/go-logging"
 	"github.com/rs/xid"
 )
@@ -13,14 +12,13 @@ import (
 const (
 	defaultListFetchSize = 10
 )
-
 type UserService struct {
-	db          *sqlx.DB
+	db          *pgx.Conn
 	roleService *RoleService
 	log         *logging.Logger
 }
 
-func NewUserService(db *sqlx.DB, roleService *RoleService, log *logging.Logger) *UserService {
+func NewUserService(db *pgx.Conn, roleService *RoleService, log *logging.Logger) *UserService {
 	return &UserService{db: db, roleService: roleService, log: log}
 }
 
@@ -28,10 +26,8 @@ func (u *UserService) FindByEmail(email string) (*model.User, error) {
 	user := &model.User{}
 
 	userSQL := `SELECT * FROM users WHERE email = $1`
-	udb := u.db.Unsafe()
-	row := udb.QueryRowx(userSQL, email)
-	err := row.StructScan(user)
-	if err == sql.ErrNoRows {
+	err := u.db.QueryRow(userSQL, email).Scan(user)
+	if err == pgx.ErrNoRows {
 		return user, nil
 	}
 	if err != nil {
@@ -53,7 +49,7 @@ func (u *UserService) CreateUser(user *model.User) (*model.User, error) {
 	user.ID = userId.String()
 	userSQL := `INSERT INTO users (id, email, password, ip_address) VALUES (:id, :email, :password, :ip_address)`
 	user.HashedPassword()
-	_, err := u.db.NamedExec(userSQL, user)
+	_, err := u.db.Exec(userSQL, user)
 	if err != nil {
 		return nil, err
 	}
@@ -72,16 +68,40 @@ func (u *UserService) List(first *int32, after *string) ([]*model.User, error) {
 	if after != nil {
 		userSQL := `SELECT * FROM users WHERE created_at < (SELECT created_at FROM users WHERE id = $1) ORDER BY created_at DESC LIMIT $2;`
 		decodedIndex, _ := DecodeCursor(after)
-		err := u.db.Select(&users, userSQL, decodedIndex, fetchSize)
+		rows, err := u.db.Query(userSQL, decodedIndex, fetchSize)
+		if err == pgx.ErrNoRows {
+			return users, nil
+		}
 		if err != nil {
 			return nil, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var user model.User
+			err = rows.Scan(&user)
+			if err != nil {
+				return nil, err
+			}
+			users = append(users, &user)
 		}
 		return users, nil
 	}
 	userSQL := `SELECT * FROM users ORDER BY created_at DESC LIMIT $1;`
-	err := u.db.Select(&users, userSQL, fetchSize)
+	rows, err := u.db.Query(userSQL, fetchSize)
+	if err == pgx.ErrNoRows {
+		return users, nil
+	}
 	if err != nil {
 		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var user model.User
+		err = rows.Scan(&user)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
 	}
 	return users, nil
 }
@@ -89,10 +109,7 @@ func (u *UserService) List(first *int32, after *string) ([]*model.User, error) {
 func (u *UserService) Count() (int, error) {
 	var count int
 	userSQL := `SELECT count(*) FROM users`
-	err := u.db.Get(&count, userSQL)
-	if err != nil {
-		return 0, err
-	}
+	u.db.QueryRow(userSQL).Scan(&count)
 	return count, nil
 }
 

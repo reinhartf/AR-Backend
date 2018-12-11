@@ -2,25 +2,22 @@ package context
 
 import (
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 	"log"
-	"time"
+
+	"github.com/jackc/pgx"
 )
 
-func OpenDB(config *Config) (*sqlx.DB, error) {
+// OpenDB creates and establishes the connection to PostgreSQL
+func OpenDB(config *Config) (*pgx.Conn, error) {
 	log.Println("Database is connecting... ")
-	db, err := sqlx.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", config.DBHost, config.DBPort, config.DBUser, config.DBPassword, config.DBName))
+	conn, err := pgx.ParseDSN(fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", config.DBHost, config.DBPort, config.DBUser, config.DBPassword, config.DBName))
+	if err != nil {
+		panic(err.Error())
+	}
+	db, err := pgx.Connect(conn)
 
 	if err != nil {
 		panic(err.Error())
 	}
-
-	if err = db.Ping(); err != nil {
-		log.Println("Retry database connection in 5 seconds... ")
-		time.Sleep(time.Duration(5) * time.Second)
-		return OpenDB(config)
-	}
-	log.Println("Database is connected ")
 	return db, nil
 }
